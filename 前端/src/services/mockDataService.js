@@ -29,7 +29,7 @@ class MockDataService {
         original_price: 68.00,
         category_id: '2',
         condition: '九成新',
-        images: [this.getMockImageUrl('2')],
+        images: [this.getMockImageUrl('2', 0)], // 图书资料分类，第一张图片
         status: 'active',
         created_time: '2024-01-15T10:30:00Z',
         updated_time: '2024-01-15T10:30:00Z',
@@ -74,7 +74,7 @@ class MockDataService {
         original_price: 1899.00,
         category_id: '1',
         condition: '九成新',
-        images: [this.getMockImageUrl('1')],
+        images: [this.getMockImageUrl('1', 1)], // 电子产品分类，第二张图片
         status: 'active',
         created_time: '2024-01-14T16:20:00Z',
         updated_time: '2024-01-14T16:20:00Z',
@@ -112,7 +112,7 @@ class MockDataService {
         original_price: 108.00,
         category_id: '2',
         condition: '七成新',
-        images: [this.getMockImageUrl('2')],
+        images: [this.getMockImageUrl('2', 1)], // 图书资料分类，第二张图片
         status: 'active',
         created_time: '2024-01-13T09:15:00Z',
         updated_time: '2024-01-13T09:15:00Z',
@@ -142,7 +142,7 @@ class MockDataService {
         original_price: 650.00,
         category_id: '4',
         condition: '八成新',
-        images: [this.getMockImageUrl('4')],
+        images: [this.getMockImageUrl('4', 0)], // 生活用品分类，第一张图片
         status: 'active',
         created_time: '2024-01-12T14:45:00Z',
         updated_time: '2024-01-12T14:45:00Z',
@@ -172,7 +172,7 @@ class MockDataService {
         original_price: 799.00,
         category_id: '5',
         condition: '八成新',
-        images: [this.getMockImageUrl('5')],
+        images: [this.getMockImageUrl('5', 0)], // 服装鞋帽分类，第一张图片
         status: 'active',
         created_time: '2024-01-11T11:20:00Z',
         updated_time: '2024-01-11T11:20:00Z',
@@ -202,7 +202,7 @@ class MockDataService {
         original_price: 120.00,
         category_id: '2',
         condition: '七成新',
-        images: [this.getMockImageUrl('2')],
+        images: [this.getMockImageUrl('2', 2)], // 图书资料分类，第三张图片
         status: 'active',
         created_time: '2024-01-10T09:30:00Z',
         updated_time: '2024-01-10T09:30:00Z',
@@ -222,6 +222,66 @@ class MockDataService {
         favorite_count: 27,
         location: '大学城校区',
         tags: ['英语四级', '考试', '真题'],
+        comments: []
+      },
+      {
+        id: 7,
+        title: 'MacBook Pro 13寸',
+        description: '2022款 MacBook Pro 13寸，M2芯片，8GB内存，256GB存储。外观完好，性能强劲，适合编程和设计工作。',
+        price: 6800.00,
+        original_price: 9999.00,
+        category_id: '1',
+        condition: '九成新',
+        images: [this.getMockImageUrl('1', 0)], // 电子产品分类，第一张图片
+        status: 'active',
+        created_time: '2024-01-09T14:20:00Z',
+        updated_time: '2024-01-09T14:20:00Z',
+        seller_info: {
+          id: '107',
+          username: '周杰',
+          college: '信息工程学院',
+          major: '人工智能',
+          avatar: '',
+          rating: 4.9,
+          email: 'zhoujie@example.com',
+          phone: '13800138007',
+          wechat: 'zhoujie789',
+          qq: '123789456'
+        },
+        view_count: 432,
+        favorite_count: 67,
+        location: '主校区',
+        tags: ['苹果', '笔记本电脑', '编程'],
+        comments: []
+      },
+      {
+        id: 8,
+        title: '篮球运动套装',
+        description: '专业篮球运动套装，包含篮球、运动服和护具。适合篮球爱好者使用，质量很好。',
+        price: 150.00,
+        original_price: 280.00,
+        category_id: '6',
+        condition: '七成新',
+        images: [this.getMockImageUrl('6', 0)], // 运动器材分类，第一张图片
+        status: 'active',
+        created_time: '2024-01-08T16:30:00Z',
+        updated_time: '2024-01-08T16:30:00Z',
+        seller_info: {
+          id: '108',
+          username: '吴强',
+          college: '体育学院',
+          major: '体育训练',
+          avatar: '',
+          rating: 4.6,
+          email: 'wuqiang@example.com',
+          phone: '13800138008',
+          wechat: 'wuqiang123',
+          qq: '456789123'
+        },
+        view_count: 89,
+        favorite_count: 15,
+        location: '新校区',
+        tags: ['篮球', '运动', '体育'],
         comments: []
       }
     ];
@@ -329,15 +389,26 @@ class MockDataService {
     return this.products.filter(product => product.category_id === categoryId);
   }
 
-  // 搜索商品
+  // 搜索商品 - 修复版本
   searchProducts(keyword) {
     if (!keyword) return this.products;
     const lowerKeyword = keyword.toLowerCase();
-    return this.products.filter(product => 
-      product.title.toLowerCase().includes(lowerKeyword) ||
-      product.description.toLowerCase().includes(lowerKeyword) ||
-      (product.tags && product.tags.some(tag => tag.toLowerCase().includes(lowerKeyword)))
-    );
+    
+    return this.products.filter(product => {
+      // 检查标题和描述是否存在
+      const titleMatch = product.title && product.title.toLowerCase().includes(lowerKeyword);
+      const descriptionMatch = product.description && product.description.toLowerCase().includes(lowerKeyword);
+      
+      // 检查标签是否存在且匹配
+      let tagsMatch = false;
+      if (product.tags && Array.isArray(product.tags)) {
+        tagsMatch = product.tags.some(tag => 
+          tag && typeof tag === 'string' && tag.toLowerCase().includes(lowerKeyword)
+        );
+      }
+      
+      return titleMatch || descriptionMatch || tagsMatch;
+    });
   }
 
   // 获取热门商品（按浏览量排序）
@@ -732,17 +803,48 @@ class MockDataService {
   }
 
   // 获取模拟图片URL（使用高质量的Unsplash图片）
-  getMockImageUrl(categoryId = '7') {
+  getMockImageUrl(categoryId = '7', imageIndex = 0) {
     const categoryImages = {
-      '1': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop&auto=format',
-      '2': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop&auto=format',
-      '3': 'https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=400&h=300&fit=crop&auto=format',
-      '4': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format',
-      '5': 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop&auto=format',
-      '6': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&auto=format',
-      '7': 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop&auto=format'
+      '1': [ // 电子产品
+        'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop&auto=format', // 笔记本电脑
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop&auto=format', // 耳机
+        'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=300&fit=crop&auto=format'  // 相机
+      ],
+      '2': [ // 图书资料
+        'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop&auto=format', // 书籍堆叠
+        'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=300&fit=crop&auto=format', // 打开的书
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&auto=format'  // 学习资料
+      ],
+      '3': [ // 学习用品
+        'https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=400&h=300&fit=crop&auto=format', // 文具
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format', // 画笔
+        'https://images.unsplash.com/photo-1596496050827-829948c6e356?w=400&h=300&fit=crop&auto=format'  // 计算器
+      ],
+      '4': [ // 生活用品
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&auto=format', // 家具
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop&auto=format', // 餐具
+        'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400&h=300&fit=crop&auto=format'  // 台灯
+      ],
+      '5': [ // 服装鞋帽
+        'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop&auto=format', // 运动鞋
+        'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=300&fit=crop&auto=format', // 衣服
+        'https://images.unsplash.com/photo-1520006403909-838d6b92c22e?w=400&h=300&fit=crop&auto=format'  // 包包
+      ],
+      '6': [ // 运动器材
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&auto=format', // 健身器材
+        'https://images.unsplash.com/photo-1536922246289-88c42f957773?w=400&h=300&fit=crop&auto=format', // 篮球
+        'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=400&h=300&fit=crop&auto=format'  // 足球
+      ],
+      '7': [ // 其他
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop&auto=format', // 杂物
+        'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=400&h=300&fit=crop&auto=format', // 艺术品
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format'  // 手工制品
+      ]
     };
-    return categoryImages[categoryId] || categoryImages['7'];
+    
+    const images = categoryImages[categoryId] || categoryImages['7'];
+    const index = imageIndex % images.length; // 确保索引在范围内
+    return images[index];
   }
 
   // 处理商品图片 - 修复版本
