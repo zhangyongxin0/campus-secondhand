@@ -8,7 +8,8 @@ import os
 import json
 import base64
 from datetime import datetime
-import requests  # 新增导入
+import requests
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
@@ -166,11 +167,11 @@ def get_baidu_ai_token():
 
 @app.route('/api/baidu-ai/recognize', methods=['POST'])
 def recognize_product():
-    """百度AI图像识别代理接口 - 使用已开通的通用物体识别"""
+    """百度AI图像识别代理接口 - 修复图片格式问题"""
     try:
         data = request.json
         access_token = data.get('access_token')
-        image_base64 = data.get('image')
+        image_base64 = data.get('image_base64')
         
         print("=== 开始图像识别 ===")
         print("接收到的access_token长度:", len(access_token) if access_token else 0)
@@ -179,7 +180,34 @@ def recognize_product():
         if not access_token or not image_base64:
             return jsonify({
                 'success': False,
-                'error': '缺少必要参数: access_token 或 image'
+                'error': '缺少必要参数: access_token 或 image_base64'
+            }), 400
+        
+        # 检查并修复base64格式
+        print("检查Base64格式...")
+        
+        # 移除可能的数据URL前缀
+        if image_base64.startswith('data:image'):
+            print("检测到DataURL格式，提取base64部分...")
+            image_base64 = image_base64.split(',')[1]
+            print("提取后base64长度:", len(image_base64))
+        
+        # 检查base64填充
+        missing_padding = len(image_base64) % 4
+        if missing_padding:
+            print(f"修复base64填充，缺少 {missing_padding} 个字符")
+            image_base64 += '=' * (4 - missing_padding)
+        
+        # 验证base64格式
+        try:
+            # 尝试解码验证
+            base64.b64decode(image_base64)
+            print("✅ Base64格式验证通过")
+        except Exception as e:
+            print(f"❌ Base64格式验证失败: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'图片格式错误: {str(e)}'
             }), 400
         
         headers = {
@@ -191,9 +219,20 @@ def recognize_product():
         api_name = "通用物体识别"
         
         print(f"正在调用百度AI {api_name} 接口...")
-        payload = f"image={image_base64}"
         
-        response = requests.post(url, params={'access_token': access_token}, data=payload, headers=headers, timeout=30)
+        # 使用URL编码确保数据正确传输
+        payload = f"image={urllib.parse.quote(image_base64)}"
+        
+        print(f"请求数据长度: {len(payload)}")
+        
+        response = requests.post(
+            url, 
+            params={'access_token': access_token}, 
+            data=payload, 
+            headers=headers, 
+            timeout=30
+        )
+        
         result = response.json()
         
         print("百度AI识别响应状态:", response.status_code)
@@ -233,6 +272,7 @@ def recognize_product():
             'success': False,
             'error': f'识别失败: {str(e)}'
         }), 500
+
 @app.route('/api/baidu-ai/test', methods=['GET'])
 def test_ai_service():
     """测试AI服务状态"""
